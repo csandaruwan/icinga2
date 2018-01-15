@@ -1,0 +1,7 @@
+[monitoring_servers]
+#icinga2server ansible_ssh_host=10.0.16.59
+icinga2.pp
+
+[webservers]
+app-com01.pp
+app-de02.pp

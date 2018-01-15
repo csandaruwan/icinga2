@@ -1,0 +1,43 @@
+---
+  # Contact all the monitored hosts to gather facts
+- hosts: all
+  remote_user: root
+  gather_facts: True
+
+  # Contact all the monitoring servers to copy host definitions
+- hosts: monitoring_servers
+  roles:
+   - role: icinga2-ansible-no-ui
+     icinga2_conf_global: |
+       include "constants.conf"
+       include "zones.conf"
+       include <itl>
+       include <plugins>
+       include "features-enabled/*.conf"
+       include_recursive "conf.d"
+     check_commands:
+       check_nrpe: |
+          "-H", "$address$",
+              "-c", "$remote_nrpe_command$",
+     tags: icinga2-no-ui
+
+   - role: icinga2-ansible-web-ui
+     icinga2_web_ui_ido: "mysql"
+     tags: icinga2-web-ui
+
+   - role: icinga2-ansible-add-hosts
+     configuration_logic: "object"
+     host_attributes: |
+       check_command = "hostalive"
+     host_checks: |
+       object Service "hostalive" {
+         host_name = "{{ hostvars[item]['ansible_fqdn'] }}"
+         check_command = "ping"
+         }
+       
+       object Service "http" {
+         host_name = "{{ hostvars[item]['ansible_fqdn'] }}"
+         check_command = "http"
+         vars.check_ipv4 = "$http_ipv4$"
+         } 
+     tags: add-hosts
